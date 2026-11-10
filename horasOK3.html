@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="gl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xogos de Reloxos Analóxicos Interactivos</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Lexend', sans-serif;
+            background-color: #f0f9ff;
+            color: #0f172a;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        /* Clock Frame and Glow Validation Effects */
+        .clock-container {
+            position: relative;
+            width: 100%;
+            max-width: 420px;
+            aspect-ratio: 1 / 1;
+            margin: 0 auto;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 14px solid #3b82f6;
+            transition: box-shadow 0.4s ease, border-color 0.4s ease;
+        }
+
+        .glow-neutral {
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+            border-color: #3b82f6;
+        }
+
+        .glow-red {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 50px 18px rgba(239, 68, 68, 0.85) !important;
+            animation: pulseRed 1.2s infinite alternate ease-in-out;
+        }
+
+        .glow-green {
+            border-color: #22c55e !important;
+            box-shadow: 0 0 60px 22px rgba(34, 197, 94, 0.95) !important;
+            animation: pulseGreen 1.2s infinite alternate ease-in-out;
+        }
+
+        @keyframes pulseRed {
+            0% { box-shadow: 0 0 20px 8px rgba(239, 68, 68, 0.6); }
+            100% { box-shadow: 0 0 55px 22px rgba(239, 68, 68, 0.95); }
+        }
+
+        @keyframes pulseGreen {
+            0% { box-shadow: 0 0 25px 10px rgba(34, 197, 94, 0.6); }
+            100% { box-shadow: 0 0 65px 28px rgba(34, 197, 94, 0.95); }
+        }
+
+        /* Clock Hands */
+        .hand {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform-origin: bottom center;
+            border-radius: 999px;
+            cursor: grab;
+            transition: transform 0.05s ease-out;
+        }
+
+        .hand:active {
+            cursor: grabbing;
+        }
+
+        /* HOUR HAND: ALWAYS RED */
+        .hour-hand {
+            width: 18px;
+            height: 30%;
+            background-color: #ef4444;
+            margin-left: -9px;
+            border: 3px solid #b91c1c;
+            z-index: 12;
+        }
+
+        /* MINUTE HAND: ALWAYS BLUE */
+        .minute-hand {
+            width: 12px;
+            height: 42%;
+            background-color: #2563eb;
+            margin-left: -6px;
+            border: 3px solid #1d4ed8;
+            z-index: 11;
+        }
+
+        /* Center Cap */
+        .center-cap {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 28px;
+            height: 28px;
+            margin-top: -14px;
+            margin-left: -14px;
+            background-color: #0f172a;
+            border: 4px solid #ffffff;
+            border-radius: 50%;
+            z-index: 20;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Clock Numbers Styling */
+        .clock-num {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            font-weight: 900;
+            user-select: none;
+            transition: color 0.3s ease, transform 0.3s ease;
+        }
+
+        .num-blue {
+            color: #2563eb !important;
+            font-size: 2.1rem;
+            text-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+        }
+
+        .num-default {
+            color: #334155;
+            font-size: 1.8rem;
+        }
+
+        /* Input Controls */
+        .time-input {
+            width: 5.5rem;
+            height: 4.5rem;
+            font-size: 2.25rem;
+            font-weight: 900;
+            text-align: center;
+            border-radius: 1.25rem;
+            border: 4px solid #cbd5e1;
+            background-color: #ffffff;
+            color: #0f172a;
+        }
+
+        .time-input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25);
+        }
+
+        .btn-tab {
+            font-weight: 800;
+            border-radius: 1.25rem;
+            padding: 0.75rem 1.25rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-big-action {
+            font-size: 1.4rem;
+            font-weight: 900;
+            padding: 1rem 2.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 6px 0 rgba(0, 0, 0, 0.15);
+            transition: all 0.15s ease;
+        }
+
+        .btn-big-action:active:not(:disabled) {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-3 sm:p-6 bg-sky-50">
+
+    <!-- HEADER & LEVEL SELECTOR -->
+    <header class="max-w-4xl mx-auto w-full mb-4">
+        <div class="bg-white rounded-3xl p-4 shadow-md border-2 border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+            
+            <div class="flex items-center gap-3">
+                <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-red-500 to-blue-600 flex items-center justify-center text-white text-3xl shadow-md">
+                    <i class="fa-solid fa-clock"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-black text-slate-800 leading-tight">Aprende a Hora</h1>
+                    <p class="text-xs sm:text-sm text-slate-500 font-bold">Reloxos adaptados para a aprendizaxe temperá</p>
+                </div>
+            </div>
+
+            <!-- JOGO 1 / JOGO 2 -->
+            <nav class="flex w-full md:w-auto bg-slate-100 p-1.5 rounded-2xl gap-2">
+                <button id="tab-1" onclick="changeGameMode(1)" class="btn-tab flex-1 md:flex-none text-xs sm:text-sm text-slate-600">
+                    Xogo 1<br><span class="text-[10px] sm:text-xs font-normal">En punto, e cuarto...</span>
+                </button>
+                <button id="tab-2" onclick="changeGameMode(2)" class="btn-tab flex-1 md:flex-none text-xs sm:text-sm text-slate-600">
+                    Xogo 2<br><span class="text-[10px] sm:text-xs font-normal">De 5 en 5 min</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- MAIN GAME PANEL -->
+    <main class="max-w-4xl mx-auto w-full flex-grow flex flex-col items-center justify-center">
+
+        <div class="w-full bg-white rounded-3xl p-4 sm:p-8 shadow-xl border-4 border-slate-100 flex flex-col items-center gap-6">
+
+            <!-- LEVEL DESCRIPTION BADGE -->
+            <div class="text-center">
+                <span id="level-badge" class="px-4 py-2 rounded-full text-xs sm:text-sm font-black uppercase tracking-wider bg-blue-100 text-blue-800 border-2 border-blue-300">
+                    Xogo 1: Só horas en punto, e cuarto, e media, menos cuarto
+                </span>
+            </div>
+
+            <!-- TARGET TIME INPUT & TEXT -->
+            <div class="bg-amber-50 border-3 border-amber-300 rounded-3xl p-4 w-full max-w-md text-center shadow-inner flex flex-col items-center gap-3">
+                <span class="text-xs sm:text-sm font-black uppercase text-amber-800 tracking-wider">
+                    Escribe ou coloca a hora:
+                </span>
+                
+                <div class="flex items-center justify-center gap-3">
+                    <div class="flex flex-col items-center">
+                        <label class="text-[11px] font-black text-red-600 uppercase mb-1">Hora (Vermella)</label>
+                        <input type="number" id="input-hour" min="1" max="12" class="time-input" onchange="onInputChange()">
+                    </div>
+                    <span class="text-4xl font-black text-slate-700 self-end mb-2">:</span>
+                    <div class="flex flex-col items-center">
+                        <label class="text-[11px] font-black text-blue-600 uppercase mb-1">Minutos (Azul)</label>
+                        <input type="number" id="input-min" min="0" max="59" class="time-input" onchange="onInputChange()">
+                    </div>
+                </div>
+
+                <p id="target-text" class="text-base sm:text-lg font-black text-amber-900 capitalize">
+                    --:--
+                </p>
+
+                <button onclick="generateNewTargetTime()" class="px-4 py-2 bg-amber-200 hover:bg-amber-300 text-amber-900 text-xs sm:text-sm font-extrabold rounded-xl transition-all shadow-sm">
+                    <i class="fa-solid fa-dice mr-1.5"></i> Cambiar Hora Aleatoria
+                </button>
+            </div>
+
+            <!-- HAND LEGEND -->
+            <div class="flex gap-6 justify-center text-xs sm:text-sm font-extrabold">
+                <div class="flex items-center gap-2 bg-red-50 border border-red-200 px-3 py-1.5 rounded-xl">
+                    <span class="w-4 h-4 rounded-full bg-red-500 border-2 border-red-700 inline-block"></span>
+                    <span class="text-red-700">Agulla HORAS (Vermella)</span>
+                </div>
+                <div class="flex items-center gap-2 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-xl">
+                    <span class="w-4 h-4 rounded-full bg-blue-600 border-2 border-blue-800 inline-block"></span>
+                    <span class="text-blue-700">Agulla MINUTOS (Azul)</span>
+                </div>
+            </div>
+
+            <!-- CLOCK FACE -->
+            <div class="w-full flex justify-center py-2">
+                <div id="clock-container" class="clock-container glow-neutral">
+                    <!-- Numbers & Markings -->
+                    <div id="clock-dial" class="absolute inset-0 rounded-full"></div>
+
+                    <!-- HOUR HAND (RED) -->
+                    <div id="hour-hand" class="hand hour-hand"></div>
+                    
+                    <!-- MINUTE HAND (BLUE) -->
+                    <div id="minute-hand" class="hand minute-hand"></div>
+
+                    <!-- CENTER PIN -->
+                    <div class="center-cap"></div>
+                </div>
+            </div>
+
+            <!-- STATUS MESSAGE (2 SECONDS VERIFICATION) -->
+            <div id="status-box" class="w-full max-w-md text-center py-3 px-4 rounded-2xl font-black text-base sm:text-lg transition-all bg-slate-100 text-slate-600">
+                Move as agullas e agarda 2 segundos...
+            </div>
+
+            <!-- NEXT / RESTART BUTTON -->
+            <div id="action-bar" class="min-h-[60px] flex items-center justify-center">
+                <button id="btn-next" onclick="generateNewTargetTime()" class="hidden btn-big-action bg-emerald-500 hover:bg-emerald-400 text-white border-b-4 border-emerald-700">
+                    <i class="fa-solid fa-circle-check mr-2"></i> Correcto! Seguinte Hora
+                </button>
+            </div>
+
+        </div>
+
+    </main>
+
+    <footer class="mt-4 text-center text-xs font-bold text-slate-400">
+        Xogo Accesible de Reloxos Analóxicos - Aprendizaxe Temperá
+    </footer>
+
+    <script>
+        let currentGameMode = 1; // 1 or 2
+        let targetHour = 12;
+        let targetMinute = 0;
+
+        let userHourAngle = 0;
+        let userMinuteAngle = 0;
+
+        let isLocked = false;
+        let inactivityTimer = null;
+        let activeHand = null;
+
+        const numberWords = [
+            'doce', 'unha', 'dúas', 'tres', 'catro', 'cinco',
+            'seis', 'sete', 'oito', 'nove', 'dez', 'once'
+        ];
+
+        // DOM Elements
+        const clockContainer = document.getElementById('clock-container');
+        const clockDial = document.getElementById('clock-dial');
+        const hourHand = document.getElementById('hour-hand');
+        const minuteHand = document.getElementById('minute-hand');
+        const statusBox = document.getElementById('status-box');
+        const btnNext = document.getElementById('btn-next');
+
+        const inputHour = document.getElementById('input-hour');
+        const inputMin = document.getElementById('input-min');
+        const targetText = document.getElementById('target-text');
+
+        // Draw Clock Dial according to exact game mode specifications
+        function renderDial() {
+            clockDial.innerHTML = '';
+
+            // Draw 12 Numbers always visible
+            for (let i = 1; i <= 12; i++) {
+                const angle = i * 30; // 360 / 12 = 30 deg
+                const rad = (angle - 90) * (Math.PI / 180);
+                const radius = 38; // percentage radius
+
+                const x = 50 + radius * Math.cos(rad);
+                const y = 50 + radius * Math.sin(rad);
+
+                const num = document.createElement('div');
+                num.className = 'clock-num';
+                num.style.left = `${x}%`;
+                num.style.top = `${y}%`;
+                num.innerText = i;
+
+                // Color Rule Check:
+                // Xogo 1: Only 12, 3, 6, 9 are BLUE
+                // Xogo 2: ALL numbers (1 to 12) are BLUE
+                if (currentGameMode === 1) {
+                    if (i === 12 || i === 3 || i === 6 || i === 9) {
+                        num.classList.add('num-blue');
+                    } else {
+                        num.classList.add('num-default');
+                    }
+                } else if (currentGameMode === 2) {
+                    num.classList.add('num-blue');
+                }
+
+                clockDial.appendChild(num);
+            }
+        }
+
+        // Switch Game Mode
+        function changeGameMode(mode) {
+            currentGameMode = mode;
+
+            // Update Tab Styles
+            [1, 2].forEach(m => {
+                const tab = document.getElementById(`tab-${m}`);
+                if (m === mode) {
+                    tab.className = 'btn-tab flex-1 md:flex-none text-xs sm:text-sm bg-blue-600 text-white shadow-md';
+                } else {
+                    tab.className = 'btn-tab flex-1 md:flex-none text-xs sm:text-sm text-slate-600 hover:text-slate-900';
+                }
+            });
+
+            // Update Badge Text
+            const badge = document.getElementById('level-badge');
+            if (mode === 1) {
+                badge.innerText = 'Xogo 1: Só en punto (:00), e cuarto (:15), e media (:30), menos cuarto (:45)';
+            } else if (mode === 2) {
+                badge.innerText = 'Xogo 2: Minutos en intervalos de 5 en 5 (:00, :05, :10, :15, ...)';
+            }
+
+            renderDial();
+            generateNewTargetTime();
+        }
+
+        // Generate Target Time
+        function generateNewTargetTime() {
+            targetHour = Math.floor(Math.random() * 12) + 1;
+
+            if (currentGameMode === 1) {
+                const quarters = [0, 15, 30, 45];
+                targetMinute = quarters[Math.floor(Math.random() * quarters.length)];
+            } else if (currentGameMode === 2) {
+                targetMinute = Math.floor(Math.random() * 12) * 5;
+            }
+
+            updateInputDisplay();
+            resetClockState();
+        }
+
+        function updateInputDisplay() {
+            inputHour.value = targetHour;
+            inputMin.value = targetMinute < 10 ? `0${targetMinute}` : targetMinute;
+            targetText.innerText = getGalicianText(targetHour, targetMinute);
+        }
+
+        function onInputChange() {
+            let h = parseInt(inputHour.value) || 12;
+            let m = parseInt(inputMin.value) || 0;
+
+            if (h < 1) h = 1;
+            if (h > 12) h = 12;
+            if (m < 0) m = 0;
+            if (m > 59) m = 59;
+
+            targetHour = h;
+            targetMinute = m;
+
+            updateInputDisplay();
+            resetClockState();
+        }
+
+        function getGalicianText(h, m) {
+    let minFormatted = m < 10 ? `0${m}` : `${m}`;
+    let prefix = `${h}:${minFormatted} - `;
+
+    let currentHourWord = numberWords[h % 12];
+    let nextHourWord = numberWords[(h % 12) + 1 === 12 ? 0 : (h % 12) + 1];
+
+    // Artigo correcto segundo sexa a unha (singular) ou outra hora (plural)
+    let currentArticle = (currentHourWord === 'unha') ? 'a' : 'as';
+    let nextArticle = (nextHourWord === 'unha') ? 'a' : 'as';
+
+    if (m === 0) return prefix + `${currentArticle} ${currentHourWord} en punto`;
+    if (m === 15) return prefix + `${currentArticle} ${currentHourWord} e cuarto`;
+    if (m === 30) return prefix + `${currentArticle} ${currentHourWord} e media`;
+    if (m === 45) {
+        return prefix + `${nextArticle} ${nextHourWord} menos cuarto`;
+    }
+    return prefix + `${currentArticle} ${currentHourWord} e ${m} minutos`;
+}
+
+        function resetClockState() {
+            isLocked = false;
+            clearTimeout(inactivityTimer);
+
+            // Reset user angles to 12:00
+            userHourAngle = 0;
+            userMinuteAngle = 0;
+            applyTransforms();
+
+            // Reset Aura & Status
+            clockContainer.className = 'clock-container glow-neutral';
+            statusBox.className = 'w-full max-w-md text-center py-3 px-4 rounded-2xl font-black text-base sm:text-lg transition-all bg-slate-100 text-slate-600';
+            statusBox.innerText = 'Move as agullas e agarda 2 segundos...';
+            btnNext.classList.add('hidden');
+        }
+
+        function applyTransforms() {
+            hourHand.style.transform = `rotate(${userHourAngle}deg)`;
+            minuteHand.style.transform = `rotate(${userMinuteAngle}deg)`;
+        }
+
+        // Dragging & Touch handling
+        function getMouseAngle(e) {
+            const rect = clockContainer.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            const dx = clientX - centerX;
+            const dy = clientY - centerY;
+
+            let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+            if (angle < 0) angle += 360;
+
+            return angle;
+        }
+
+        function startDrag(e, handType) {
+            if (isLocked) return;
+            activeHand = handType;
+            resetInactivityTimer();
+
+            document.addEventListener('mousemove', handleDrag);
+            document.addEventListener('mouseup', stopDrag);
+            document.addEventListener('touchmove', handleDrag, { passive: false });
+            document.addEventListener('touchend', stopDrag);
+        }
+
+        function handleDrag(e) {
+            if (!activeHand || isLocked) return;
+            if (e.preventDefault) e.preventDefault();
+
+            const angle = getMouseAngle(e);
+
+            if (activeHand === 'minute') {
+                userMinuteAngle = angle;
+            } else if (activeHand === 'hour') {
+                userHourAngle = angle;
+            }
+
+            applyTransforms();
+            resetInactivityTimer();
+        }
+
+        function stopDrag() {
+            activeHand = null;
+            document.removeEventListener('mousemove', handleDrag);
+            document.removeEventListener('mouseup', stopDrag);
+            document.removeEventListener('touchmove', handleDrag);
+            document.removeEventListener('touchend', stopDrag);
+
+            resetInactivityTimer();
+        }
+
+        hourHand.addEventListener('mousedown', (e) => startDrag(e, 'hour'));
+        hourHand.addEventListener('touchstart', (e) => startDrag(e, 'hour'));
+
+        minuteHand.addEventListener('mousedown', (e) => startDrag(e, 'minute'));
+        minuteHand.addEventListener('touchstart', (e) => startDrag(e, 'minute'));
+
+        clockContainer.addEventListener('mousedown', (e) => {
+            if (e.target === hourHand || e.target === minuteHand) return;
+            startDrag(e, 'minute');
+        });
+
+        // 2-SECOND INACTIVITY VERIFICATION
+        function resetInactivityTimer() {
+            if (isLocked) return;
+
+            clockContainer.className = 'clock-container glow-neutral';
+            statusBox.className = 'w-full max-w-md text-center py-3 px-4 rounded-2xl font-black text-base sm:text-lg transition-all bg-slate-100 text-slate-600';
+            statusBox.innerText = 'Comprobando posición en 2 segundos...';
+
+            clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(verifyClockPosition, 2000);
+        }
+
+        function verifyClockPosition() {
+            if (isLocked) return;
+
+            // Calculate target realistic angle for the hour hand
+            // Example: 9:45 -> Hour hand angle should be (9 * 30) + (45 / 60 * 30) = 270 + 22.5 = 292.5 deg
+            let targetHourAngle = ((targetHour % 12) * 30) + ((targetMinute / 60) * 30);
+            let targetMinuteAngle = targetMinute * 6;
+
+            let hourAngleDiff = Math.abs(userHourAngle - targetHourAngle);
+            if (hourAngleDiff > 180) hourAngleDiff = 360 - hourAngleDiff;
+
+            let minAngleDiff = Math.abs(userMinuteAngle - targetMinuteAngle);
+            if (minAngleDiff > 180) minAngleDiff = 360 - minAngleDiff;
+
+            // Allow a comfortable margin of error (~15 degrees for hour hand, ~18 degrees for minute hand)
+            const isHourCorrect = hourAngleDiff <= 16;
+            const isMinCorrect = minAngleDiff <= 18;
+
+            if (isHourCorrect && isMinCorrect) {
+                // SUCCESS
+                isLocked = true;
+                clockContainer.className = 'clock-container glow-green';
+                statusBox.className = 'w-full max-w-md text-center py-3 px-4 rounded-2xl font-black text-base sm:text-lg transition-all bg-emerald-100 text-emerald-800 border-2 border-emerald-400';
+                statusBox.innerHTML = '<i class="fa-solid fa-circle-check mr-2 text-xl"></i> Posición correcta! Excelente traballo.';
+                btnNext.classList.remove('hidden');
+            } else {
+                // INCORRECT
+                clockContainer.className = 'clock-container glow-red';
+                statusBox.className = 'w-full max-w-md text-center py-3 px-4 rounded-2xl font-black text-base sm:text-lg transition-all bg-red-100 text-red-800 border-2 border-red-400';
+                statusBox.innerHTML = '<i class="fa-solid fa-circle-xmark mr-2 text-xl"></i> Posición incorrecta. Sigue intentándoo.';
+            }
+        }
+
+        // Initialize on load
+        window.onload = function() {
+            changeGameMode(1);
+        };
+    </script>
+</body>
+</html>
